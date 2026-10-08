@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    # Neon gives you a JDBC URL like:
+    # jdbc:postgresql://ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # 'update' is fine for week 1. Swap to Flyway/Liquibase later.
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+server:
+  port: 8080
+
+# Allow the React dev server to call us. We'll tighten this before deploy.
+app:
+  cors:
+    allowed-origins: http://localhost:5173
