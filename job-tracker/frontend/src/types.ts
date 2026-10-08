@@ -1,4 +1,4 @@
-export type ApplicationStatus = 'APPLIED' | 'INTERVIEW' | 'OFFER' | 'REJECTED';
+export type ApplicationStatus = "APPLIED" | "INTERVIEW" | "OFFER" | "REJECTED";
 
 export interface JobApplication {
   id: number;
@@ -17,3 +17,17 @@ export interface CreateJobRequest {
   notes?: string;
   url?: string;
 }
+
+export const STATUS_LABEL: Record<ApplicationStatus, string> = {
+  APPLIED: "Applied",
+  INTERVIEW: "Interview",
+  OFFER: "Offer",
+  REJECTED: "Rejected",
+};
+
+export const STATUS_ORDER: ApplicationStatus[] = [
+  "APPLIED",
+  "INTERVIEW",
+  "OFFER",
+  "REJECTED",
+];
