@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
+
 import { TopBar } from "./components/TopBar";
 import { KpiRow } from "./components/KpiRow";
 import { StatusDonut } from "./components/StatusDonut";
 import { OngoingProjects } from "./components/OngoingProjects";
 import { Board } from "./components/Board";
 import { AddApplicationModal } from "./components/AddApplicationModal";
+import { EditApplicationModal } from "./components/EditApplicationModal";
 import { jobsApi } from "./api/jobs";
-import type { CreateJobRequest, JobApplication } from "./types";
+import type {
+  ApplicationStatus,
+  CreateJobRequest,
+  JobApplication,
+} from "./types";
 import { ThemeProvider } from "./ThemeContext";
 import "./styles.css";
 import { Sidebar } from "./components/SideBar";
@@ -23,7 +29,11 @@ function Dashboard() {
   const [jobs, setJobs] = useState<JobApplication[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState<JobApplication | null>(null);
+
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     jobsApi
@@ -33,10 +43,30 @@ function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Client-side search. Server-side search lands when the dataset grows.
+  const filteredJobs = search.trim()
+    ? jobs.filter((j) => {
+        const needle = search.toLowerCase();
+        return (
+          j.company.toLowerCase().includes(needle) ||
+          j.role.toLowerCase().includes(needle)
+        );
+      })
+    : jobs;
+
   async function handleCreate(data: CreateJobRequest) {
     try {
       const created = await jobsApi.create(data);
       setJobs((prev) => [created, ...prev]);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function handleUpdate(id: number, data: CreateJobRequest) {
+    try {
+      const updated = await jobsApi.update(id, data);
+      setJobs((prev) => prev.map((j) => (j.id === id ? updated : j)));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -53,12 +83,29 @@ function Dashboard() {
     }
   }
 
+  async function handleMoveStatus(id: number, status: ApplicationStatus) {
+    const previous = jobs;
+    // Optimistic: move the card now, revert if the server disagrees.
+    setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, status } : j)));
+    try {
+      const updated = await jobsApi.updateStatus(id, status);
+      setJobs((prev) => prev.map((j) => (j.id === id ? updated : j)));
+    } catch (e) {
+      setJobs(previous);
+      setError((e as Error).message);
+    }
+  }
+
   return (
     <div className="app-shell">
       <Sidebar />
 
       <main className="main">
-        <TopBar onAdd={() => setModalOpen(true)} />
+        <TopBar
+          onAdd={() => setAddOpen(true)}
+          search={search}
+          onSearch={setSearch}
+        />
 
         {error && (
           <div role="alert" className="error">
@@ -67,23 +114,34 @@ function Dashboard() {
         )}
 
         <div className="overview">
-          <KpiRow jobs={jobs} />
-          <StatusDonut jobs={jobs} />
+          <KpiRow jobs={filteredJobs} />
+          <StatusDonut jobs={filteredJobs} />
         </div>
 
-        <OngoingProjects jobs={jobs} />
+        <OngoingProjects jobs={filteredJobs} />
 
         {loading ? (
           <p className="loading">Loading…</p>
         ) : (
-          <Board jobs={jobs} onDelete={handleDelete} />
+          <Board
+            jobs={filteredJobs}
+            onEdit={setEditing}
+            onDelete={handleDelete}
+            onMoveStatus={handleMoveStatus}
+          />
         )}
       </main>
 
       <AddApplicationModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
         onCreate={handleCreate}
+      />
+
+      <EditApplicationModal
+        job={editing}
+        onClose={() => setEditing(null)}
+        onSave={handleUpdate}
       />
     </div>
   );
