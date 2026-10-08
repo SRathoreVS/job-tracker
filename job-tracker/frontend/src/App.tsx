@@ -1,15 +1,25 @@
-import { useEffect, useState } from 'react';
-
+import { useEffect, useState } from "react";
 import { TopBar } from "./components/TopBar";
 import { KpiRow } from "./components/KpiRow";
+import { StatusDonut } from "./components/StatusDonut";
+import { OngoingProjects } from "./components/OngoingProjects";
 import { Board } from "./components/Board";
 import { AddApplicationModal } from "./components/AddApplicationModal";
-import { jobsApi } from './api/jobs';
-import type { CreateJobRequest, JobApplication } from './types';
-import './styles.css';
+import { jobsApi } from "./api/jobs";
+import type { CreateJobRequest, JobApplication } from "./types";
+import { ThemeProvider } from "./ThemeContext";
+import "./styles.css";
 import { Sidebar } from "./components/SideBar";
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <Dashboard />
+    </ThemeProvider>
+  );
+}
+
+function Dashboard() {
   const [jobs, setJobs] = useState<JobApplication[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +66,12 @@ export default function App() {
           </div>
         )}
 
-        <KpiRow jobs={jobs} />
+        <div className="overview">
+          <KpiRow jobs={jobs} />
+          <StatusDonut jobs={jobs} />
+        </div>
+
+        <OngoingProjects jobs={jobs} />
 
         {loading ? (
           <p className="loading">Loading…</p>
